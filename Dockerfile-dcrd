@@ -13,6 +13,7 @@ ENV TERM linux
 ENV USER decred
 ENV HOME /home/$USER
 ENV DOTDCRD $HOME/.dcrd
+ENV DOTDCRWALLET $HOME/.dcrwallet
 
 # create user
 RUN adduser --disabled-password --gecos '' $USER
@@ -23,7 +24,7 @@ RUN set -x && \
     DEBIAN_FRONTEND=noninteractive && \
     BUILD_DEPS=curl && \
     apt-get update && \
-    apt-get install -qy $BUILD_DEPS && \
+    apt-get install -qy $BUILD_DEPS gosu curl vim htop && \
 
     # Decred release url and files
     DCR_RELEASE_URL="https://github.com/decred/decred-binaries/releases/download/$DCR_RELEASE" && \
@@ -47,8 +48,9 @@ RUN set -x && \
 
     # Extract and install
     tar xvzf $DCR_RELEASE_FILE && \
-    mv $DCR_RELEASE_NAME/dcrd $HOME && \
-    mkdir -p $DOTDCRD && \
+    mv $DCR_RELEASE_NAME/dcrd /usr/bin && \
+    mv $DCR_RELEASE_NAME/dcrwallet /usr/bin && \
+    mv $DCR_RELEASE_NAME/dcrctl /usr/bin && \
     chown -R $USER.$USER $HOME && \
 
     # Cleanup
@@ -60,7 +62,13 @@ RUN set -x && \
 USER $USER
 WORKDIR /home/$USER
 
+ENV DECRED_DATA /data
+VOLUME /data
+
+COPY dcrd-entrypoint.sh /entrypoint.sh
+ENTRYPOINT ["/entrypoint.sh"]
+
 # PEER & RPC PORTS
-EXPOSE 9108 9109
+EXPOSE 9108 9109 9110 19108 19109 19110
 
 CMD ./dcrd --listen=127.0.0.1
